@@ -34,9 +34,9 @@ contract SnowDay is ERC721, Ownable {
     uint256 public constant MINT_WINDOW = 2 days;
     uint256 public constant TOTAL_TIME = 1 weeks;
     uint256 public nextTokenId = 1;
-    uint256 startTime;
-    uint256 mintWindow;
-    uint256 endTime;
+    uint256 public startTime;
+    uint256 public mintWindow;
+    uint256 public endTime;
     
     bool public isGamePaused = false;
     bool public gameInProgress = false;
@@ -154,16 +154,23 @@ contract SnowDay is ERC721, Ownable {
         return string(abi.encodePacked("data:application/json;base64,", json));
     }
 
-    // Getter function to check is the wallets hots and NFT and return the attributes
     function checkIfUserNFT(address _holder) public view returns (CharacterAttributes memory) {
         uint256 userNftTokenId = nftHolders[_holder];
         if (userNftTokenId > 0) {
-            return nftHolderAttributes[userNftTokenId];
+            // Assuming there's a function `ownerOf` that returns the owner's address for a tokenId
+            address ownerAddress = ownerOf(userNftTokenId);
+            if (ownerAddress != address(0)) { // Check if the owner address is not the zero address
+                return nftHolderAttributes[userNftTokenId];
+            } else {
+                CharacterAttributes memory emptyStruct;
+                return emptyStruct; // Return an empty struct if the owner address is the zero address
+            }
         } else {
             CharacterAttributes memory emptyStruct;
-            return emptyStruct;
+            return emptyStruct; // Return an empty struct if userNftTokenId is 0 or less
         }
     }
+
 
     // Getter function to check is the wallet holds an NFT
     function checkIfTargetHasNFT(address _holder) public view returns (bool) {
@@ -187,6 +194,18 @@ contract SnowDay is ERC721, Ownable {
     // Get the HP of the specific token ID
     function getCharacterHp(uint256 _tokenId) public view returns (uint256) {
         return nftHolderAttributes[_tokenId].hp;
+    }
+
+    function getIsGameInProgress() public view returns (bool) {
+        return gameInProgress;
+    }
+
+    function getTimeLeftForCurrentGame() public view returns (uint256) {
+        if (block.timestamp < endTime) {
+            return endTime - block.timestamp;
+        } else {
+            return 0;
+        }
     }
 
     // Only Owner Functions
@@ -214,7 +233,7 @@ contract SnowDay is ERC721, Ownable {
         );
     }
 
-    // Updaet character name, image URI, HP, Attack, Defense, Evade
+    // Update character name, image URI, HP, Attack, Defense, Evade
     function updateCharacterName(uint256 _characterIndex, string memory _newName) external onlyOwner {
         defaultCharacters[_characterIndex].name = _newName;
     }
